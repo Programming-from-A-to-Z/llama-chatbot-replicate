@@ -12,9 +12,8 @@ const app = express();
 // Instantiate the Replicate client with the API token
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 // Define the model and version to use with Replicate
+// const model = 'meta/meta-llama-3-8b-instruct';
 const model = 'meta/llama-2-7b-chat';
-const version =
-  '8e6975e5ed6174911a6ff3d60540dfd4844201974602551e10e9e87ab143d81e';
 
 // Middleware for parsing JSON request bodies
 app.use(bodyParser.json());
@@ -50,7 +49,7 @@ async function generate(history) {
   };
 
   // Run the model with the formatted input and return the result
-  const output = await replicate.run(`${model}:${version}`, { input });
+  const output = await replicate.run(model, { input });
   return output.join('').trim();
 }
 
