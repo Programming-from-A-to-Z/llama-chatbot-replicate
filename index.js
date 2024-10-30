@@ -12,44 +12,42 @@ const app = express();
 // Instantiate the Replicate client with the API token
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 // Define the model and version to use with Replicate
-// const model = 'meta/meta-llama-3-8b-instruct';
-const model = 'meta/llama-2-7b-chat';
+const model = 'meta/meta-llama-3-8b-instruct';
+// const model = 'meta/llama-2-7b-chat';
 
 // Middleware for parsing JSON request bodies
 app.use(bodyParser.json());
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
 
-// Function to format the conversation history and generate a response using Replicate
+// Function to format the conversation history and generate a response
 async function generate(history) {
-  // Initialize an empty string to accumulate the formatted history
-  let formattedHistory = '';
-
-  // Loop through each message in the history array
+  let formattedHistory = '<|begin_of_text|>';
   for (let i = 0; i < history.length; i++) {
-    // Check the role of the message and format accordingly
-    if (history[i].role === 'user') {
-      // If the message is from the user, wrap the content with [INST] tags
-      formattedHistory += `[INST] ${history[i].content} [/INST]\n`;
-    } else {
-      // If the message is not from the user, add it as is
-      formattedHistory += `${history[i].content}\n`;
+    const message = history[i];
+    // Format the message based on its role
+    if (message.role === 'system') {
+      formattedHistory += `<|start_header_id|>system<|end_header_id|>\n${message.content}<|eot_id|>`;
+    } else if (message.role === 'user') {
+      formattedHistory += `<|start_header_id|>user<|end_header_id|>\n${message.content}<|eot_id|>`;
+    } else if (message.role === 'assistant') {
+      formattedHistory += `<|start_header_id|>assistant<|end_header_id|>\n${message.content}<|eot_id|>`;
     }
   }
 
-  // Remove the last newline character from the formatted history string
-  if (formattedHistory.endsWith('\n')) {
-    formattedHistory = formattedHistory.slice(0, -1);
-  }
+  // Add the final assistant prompt
+  formattedHistory += `<|start_header_id|>assistant<|end_header_id|>`;
 
-  // Construct the input object for the model
+  // Construct the input object for the Llama 3 model
   const input = {
     prompt: formattedHistory,
-    system_prompt: 'You are a helpful assistant.',
+    system_prompt: 'You are a helpful AI assistant.',
   };
 
   // Run the model with the formatted input and return the result
   const output = await replicate.run(model, { input });
+
+  // Join and trim the model output
   return output.join('').trim();
 }
 
